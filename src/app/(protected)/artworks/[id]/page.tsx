@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseRSC, getSupabaseAdminClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils/slug";
+import FileField from "@/components/FileField";
+export const runtime = "nodejs";
 
 type Artwork = {
   id: string;
@@ -39,6 +41,26 @@ function getExtFromFile(file: File | null) {
   if (file.type === "image/jpeg") return "jpg";
   if (file.type === "image/png") return "png";
   return "bin";
+}
+
+function filenameFromUrl(url: string | null) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const p = u.pathname || "";
+    const last = p.substring(p.lastIndexOf("/") + 1);
+    return last || null;
+  } catch {
+    return null;
+  }
+}
+
+function isValidUpload(file: File | null) {
+  try {
+    return !!(file && typeof file === "object" && "size" in file && (file as File).size > 0);
+  } catch {
+    return false;
+  }
 }
 
 export default async function EditArtworkPage({ params }: { params: { id: string } }) {
@@ -103,7 +125,7 @@ export default async function EditArtworkPage({ params }: { params: { id: string
     }
 
     // Replace HTML
-    if (htmlFile) {
+    if (isValidUpload(htmlFile)) {
       const ext = getExtFromFile(htmlFile) || "html";
       const newPath = `html/${base}.${ext}`;
       const oldPath = pathFromPublicUrl(existingHtmlUrl);
@@ -115,7 +137,7 @@ export default async function EditArtworkPage({ params }: { params: { id: string
     }
 
     // Replace MP4
-    if (mp4File) {
+    if (isValidUpload(mp4File)) {
       const ext = getExtFromFile(mp4File) || "mp4";
       const newPath = `previews/${base}.${ext}`;
       const oldPath = pathFromPublicUrl(existingPreviewUrl);
@@ -126,7 +148,7 @@ export default async function EditArtworkPage({ params }: { params: { id: string
     }
 
     // Replace Thumb
-    if (thumbFile) {
+    if (isValidUpload(thumbFile)) {
       const ext = getExtFromFile(thumbFile) || "jpg";
       const newPath = `thumbnails/${base}.${ext}`;
       const oldPath = pathFromPublicUrl(existingThumbUrl);
@@ -149,9 +171,9 @@ export default async function EditArtworkPage({ params }: { params: { id: string
     }
 
     // Only include media URLs if a new file was uploaded
-    if (htmlFile) updates.html_url = html_url;
-    if (mp4File) updates.preview_video_url = preview_video_url;
-    if (thumbFile) updates.thumb_url = thumb_url;
+    if (isValidUpload(htmlFile)) updates.html_url = html_url;
+    if (isValidUpload(mp4File)) updates.preview_video_url = preview_video_url;
+    if (isValidUpload(thumbFile)) updates.thumb_url = thumb_url;
 
     const { error: updErr } = await admin
       .from("artworks")
@@ -229,40 +251,58 @@ export default async function EditArtworkPage({ params }: { params: { id: string
         <div className="space-y-1">
           <label className="block text-sm">Current HTML</label>
           {row.html_url ? (
-            <a href={row.html_url} target="_blank" className="text-sm underline break-all">
-              {row.html_url}
-            </a>
+            <div className="text-sm">
+              <a href={row.html_url} target="_blank" className="underline break-all">
+                {row.html_url}
+              </a>
+              <div className="text-neutral-500 mt-1">
+                Filename: {filenameFromUrl(row.html_url) ?? "-"}
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-neutral-500">None</p>
           )}
-          <label className="block text-sm mt-2">Replace HTML</label>
-          <input name="html_file" type="file" accept=".html,text/html" className="text-sm" />
+          <div className="mt-2">
+            <FileField id="html_file" name="html_file" accept=".html,text/html" buttonText="Choose HTML" />
+          </div>
         </div>
 
         <div className="space-y-1">
           <label className="block text-sm">Current Preview MP4</label>
           {row.preview_video_url ? (
-            <a href={row.preview_video_url} target="_blank" className="text-sm underline break-all">
-              {row.preview_video_url}
-            </a>
+            <div className="text-sm">
+              <a href={row.preview_video_url} target="_blank" className="underline break-all">
+                {row.preview_video_url}
+              </a>
+              <div className="text-neutral-500 mt-1">
+                Filename: {filenameFromUrl(row.preview_video_url) ?? "-"}
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-neutral-500">None</p>
           )}
-          <label className="block text-sm mt-2">Replace MP4</label>
-          <input name="mp4_file" type="file" accept="video/mp4" className="text-sm" />
+          <div className="mt-2">
+            <FileField id="mp4_file" name="mp4_file" accept="video/mp4" buttonText="Choose MP4" />
+          </div>
         </div>
 
         <div className="space-y-1">
           <label className="block text-sm">Current Thumbnail</label>
           {row.thumb_url ? (
-            <a href={row.thumb_url} target="_blank" className="text-sm underline break-all">
-              {row.thumb_url}
-            </a>
+            <div className="text-sm">
+              <a href={row.thumb_url} target="_blank" className="underline break-all">
+                {row.thumb_url}
+              </a>
+              <div className="text-neutral-500 mt-1">
+                Filename: {filenameFromUrl(row.thumb_url) ?? "-"}
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-neutral-500">None</p>
           )}
-          <label className="block text-sm mt-2">Replace Thumbnail (JPG/PNG)</label>
-          <input name="thumb_file" type="file" accept="image/jpeg,image/png" className="text-sm" />
+          <div className="mt-2">
+            <FileField id="thumb_file" name="thumb_file" accept="image/jpeg,image/png" buttonText="Choose Image" />
+          </div>
         </div>
 
         <div className="pt-2">

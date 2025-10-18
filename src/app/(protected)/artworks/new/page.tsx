@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSupabaseRSC, getSupabaseAdminClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils/slug";
+import FileField from "@/components/FileField";
+
+export const runtime = "nodejs";
 
 function getExt(file: File | null) {
   if (!file) return null;
@@ -13,6 +16,14 @@ function getExt(file: File | null) {
   if (file.type === "image/jpeg") return "jpg";
   if (file.type === "image/png") return "png";
   return "bin";
+}
+
+function isValidUpload(file: File | null) {
+  try {
+    return !!(file && typeof file === "object" && "size" in file && (file as File).size > 0);
+  } catch {
+    return false;
+  }
 }
 
 export default async function NewArtworkPage() {
@@ -61,15 +72,15 @@ export default async function NewArtworkPage() {
     }
 
     // Upload provided files
-    if (htmlFile) {
+    if (isValidUpload(htmlFile)) {
       const ext = getExt(htmlFile) || "html";
       html_url = await uploadFile(`html/${base}.${ext}`, htmlFile);
     }
-    if (mp4File) {
+    if (isValidUpload(mp4File)) {
       const ext = getExt(mp4File) || "mp4";
       preview_video_url = await uploadFile(`previews/${base}.${ext}`, mp4File);
     }
-    if (thumbFile) {
+    if (isValidUpload(thumbFile)) {
       const ext = getExt(thumbFile) || "jpg";
       thumb_url = await uploadFile(`thumbnails/${base}.${ext}`, thumbFile);
     }
@@ -126,53 +137,17 @@ export default async function NewArtworkPage() {
 
         <div className="space-y-1">
           <label className="block text-sm mb-1">HTML File</label>
-          <input
-            id="html_file"
-            name="html_file"
-            type="file"
-            accept=".html,text/html"
-            className="hidden"
-          />
-          <label
-            htmlFor="html_file"
-            className="inline-flex items-center rounded-md border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer"
-          >
-            Select HTML
-          </label>
+          <FileField id="html_file" name="html_file" accept=".html,text/html" buttonText="Select HTML" />
         </div>
 
         <div className="space-y-1">
           <label className="block text-sm mb-1">Preview MP4</label>
-          <input
-            id="mp4_file"
-            name="mp4_file"
-            type="file"
-            accept="video/mp4"
-            className="hidden"
-          />
-          <label
-            htmlFor="mp4_file"
-            className="inline-flex items-center rounded-md border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer"
-          >
-            Select MP4
-          </label>
+          <FileField id="mp4_file" name="mp4_file" accept="video/mp4" buttonText="Select MP4" />
         </div>
 
         <div className="space-y-1">
           <label className="block text-sm mb-1">Thumbnail (JPG/PNG)</label>
-          <input
-            id="thumb_file"
-            name="thumb_file"
-            type="file"
-            accept="image/jpeg,image/png"
-            className="hidden"
-          />
-          <label
-            htmlFor="thumb_file"
-            className="inline-flex items-center rounded-md border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer"
-          >
-            Select Image
-          </label>
+          <FileField id="thumb_file" name="thumb_file" accept="image/jpeg,image/png" buttonText="Select Image" />
         </div>
 
         <div className="pt-2">
