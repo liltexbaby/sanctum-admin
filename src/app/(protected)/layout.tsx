@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseRSC } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
   const supabase = await getSupabaseRSC();
   const { data } = await supabase.auth.getUser();
